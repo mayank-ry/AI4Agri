@@ -1,0 +1,37 @@
+.env
+# Python
+venv/
+Agri/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+
+# Environment
+.env
+.env.local
+# HuggingFace / ML
+backend/ml/cache/
+*.h5
+*.pt
+*.bin
+*.safetensors
+
+# VS Code
+.vscode/
+
+# Next.js
+.next/
+
+# Logs
+*.log
+
+Agri/
+backend/ml/cache/
+node_modules/
+.next/
+.env
+.env.local
+*.h5
+*.safetensors

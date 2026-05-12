@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgis/postgis:15-3.3
+    container_name: ai4agri_db
+    environment:
+      POSTGRES_USER: ai4agri
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ai4agri
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:

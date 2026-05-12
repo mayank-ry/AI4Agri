@@ -1,0 +1,23 @@
+{
+  "landing": {
+    "title": "Predictive Precision Agriculture",
+    "subtitle": "Intelligence Platform for Modern Farming",
+    "cta_login": "Login to Dashboard"
+  },
+  "dashboard": {
+    "title": "Farm Dashboard",
+    "overview": "Overview",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "auth": {
+    "login": "Login",
+    "email": "Email Address",
+    "password": "Password",
+    "submit": "Sign In"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred."
+  }
+}
