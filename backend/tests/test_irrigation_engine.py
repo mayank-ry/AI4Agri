@@ -1,5 +1,4 @@
-import pytest
-from app.services.irrigation_engine import IrrigationEngine
+from ml.irrigation_engine import IrrigationEngine
 
 def test_irrigation_not_required():
     result = IrrigationEngine.generate_recommendation(

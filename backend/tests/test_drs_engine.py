@@ -1,5 +1,4 @@
-import pytest
-from app.services.drs_engine import DRSEngine
+from ml.drs_engine import DRSEngine
 
 def test_drs_low_risk():
     result = DRSEngine.calculate_drs(

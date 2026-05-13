@@ -54,10 +54,15 @@ async def get_weather_and_et0(lat: float, lon: float) -> dict:
         )
        
         return {
+            'current': {
+                'temp': round(temp_avg, 1),
+                'humidity': 50,
+            },
             'temp_avg': round(temp_avg, 1),
             'temp_max': round(temp_max, 1),
             'temp_min': round(temp_min, 1),
             'et0_today': round(et0_today, 3),
+            'rainfall_24h': daily['precipitation_sum'][0] or 0,
             'rainfall_7d': round(rain_sum_7d, 1),
             'rainfall_48h_forecast': round(rain_48h, 1),
             'forecast': forecast,
@@ -66,10 +71,12 @@ async def get_weather_and_et0(lat: float, lon: float) -> dict:
     except Exception as e:
         log.error("Weather fetch failed", error=str(e))
         return {
+            'current': {'temp': 28.0, 'humidity': 50},
             'temp_avg': 28.0,
             'temp_max': 35.0,
             'temp_min': 20.0,
             'et0_today': 4.5,
+            'rainfall_24h': 0.0,
             'rainfall_7d': 0.0,
             'rainfall_48h_forecast': 0.0,
             'forecast': [],

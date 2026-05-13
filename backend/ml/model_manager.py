@@ -7,6 +7,9 @@ Lazy loading with CPU-only inference for Windows + Python 3.11.
 import os
 import time
 import structlog
+import json
+import shutil
+import tempfile
 from enum import Enum
 from typing import Optional, Any
 from pathlib import Path
@@ -88,12 +91,89 @@ class ManagedModel:
 
 def _load_disease_cnn():
     """Load MobileNetV2 CNN model from local cache."""
-    model_path = os.getenv("DISEASE_MODEL_PATH", "backend/ml/models/plant_disease_mobilenetv2.h5")
-    if not os.path.exists(model_path):
-        raise FileNotFoundError(f"CNN model not found at {model_path}")
+    configured_path = os.getenv("DISEASE_MODEL_PATH")
+    candidates = []
+    if configured_path:
+        candidates.append(Path(configured_path))
+        if not Path(configured_path).is_absolute():
+            candidates.append(_current_dir.parent.parent / configured_path)
+    candidates.append(_current_dir / "models" / "plant_disease_mobilenetv2.h5")
+
+    model_path = next((path for path in candidates if path.exists()), None)
+    if model_path is None:
+        tried = ", ".join(str(path) for path in candidates)
+        raise FileNotFoundError(f"CNN model not found. Tried: {tried}")
     import tensorflow as tf
-    model = tf.keras.models.load_model(model_path, compile=False)
-    log.info("cnn_disease_model_loaded", path=model_path)
+    try:
+        model = tf.keras.models.load_model(str(model_path), compile=False)
+    except Exception as e:
+        if "InputLayer" not in str(e) or "batch_shape" not in str(e):
+            log.warning("cnn_load_model_failed_reconstructing", error=str(e))
+            return _reconstruct_mobilenetv2_cnn(tf, model_path)
+        try:
+            model = _load_keras_h5_with_inputlayer_compat(tf, model_path)
+        except Exception as compat_error:
+            log.warning("cnn_h5_compat_load_failed_reconstructing", error=str(compat_error))
+            model = _reconstruct_mobilenetv2_cnn(tf, model_path)
+    log.info("cnn_disease_model_loaded", path=str(model_path))
+    return model
+
+
+def _load_keras_h5_with_inputlayer_compat(tf, model_path: Path):
+    """Load Keras 3-style H5 configs with older tf.keras loaders."""
+    import h5py
+
+    def patch_layer_config(node):
+        if isinstance(node, dict):
+            if node.get("class_name") == "InputLayer":
+                config = node.get("config", {})
+                if "batch_shape" in config and "batch_input_shape" not in config:
+                    config["batch_input_shape"] = config.pop("batch_shape")
+                config.pop("optional", None)
+            config = node.get("config")
+            if isinstance(config, dict):
+                config.pop("quantization_config", None)
+                dtype = config.get("dtype")
+                if isinstance(dtype, dict) and dtype.get("class_name") == "DTypePolicy":
+                    config["dtype"] = dtype.get("config", {}).get("name", "float32")
+            for value in node.values():
+                patch_layer_config(value)
+        elif isinstance(node, list):
+            for item in node:
+                patch_layer_config(item)
+
+    with tempfile.NamedTemporaryFile(suffix=".h5", delete=False) as temp_file:
+        temp_path = Path(temp_file.name)
+
+    try:
+        shutil.copy2(model_path, temp_path)
+        with h5py.File(temp_path, "r+") as h5_file:
+            raw_config = h5_file.attrs.get("model_config")
+            if raw_config is None:
+                raise ValueError("H5 model_config attribute missing")
+            if isinstance(raw_config, bytes):
+                raw_config = raw_config.decode("utf-8")
+            config = json.loads(raw_config)
+            patch_layer_config(config)
+            h5_file.attrs.modify("model_config", json.dumps(config).encode("utf-8"))
+        return tf.keras.models.load_model(str(temp_path), compile=False)
+    finally:
+        temp_path.unlink(missing_ok=True)
+
+
+def _reconstruct_mobilenetv2_cnn(tf, model_path: Path):
+    """Rebuild the known MobileNetV2 head and load H5 weights by layer name."""
+    base = tf.keras.applications.MobileNetV2(
+        input_shape=(224, 224, 3),
+        include_top=False,
+        weights=None,
+    )
+    base.trainable = False
+    x = tf.keras.layers.GlobalAveragePooling2D(name="global_average_pooling2d")(base.output)
+    x = tf.keras.layers.Dropout(0.3, name="dropout")(x)
+    output = tf.keras.layers.Dense(15, activation="softmax", name="dense")(x)
+    model = tf.keras.Model(base.input, output)
+    model.load_weights(str(model_path), by_name=True, skip_mismatch=False)
     return model
 
 

@@ -9,8 +9,9 @@ from transformers import (
 )
 
 import os
+from pathlib import Path
 
-BASE_CACHE = "backend/ml/cache"
+BASE_CACHE = str(Path(__file__).resolve().parent / "cache")
 
 MODELS = {
     "vit": {

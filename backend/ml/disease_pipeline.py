@@ -11,6 +11,8 @@ import numpy as np
 import structlog
 from PIL import Image
 import io
+import json
+from pathlib import Path
 from typing import Optional
 
 log = structlog.get_logger()
@@ -22,7 +24,7 @@ AGREEMENT_BOOST = 0.05
 
 # ── CNN Disease Classes (matches your MobileNetV2 training) ──────────
 # Update this list to match your actual model's class names
-CNN_CLASSES = [
+DEFAULT_CNN_CLASSES = [
     "Apple___Apple_scab", "Apple___Black_rot", "Apple___Cedar_apple_rust",
     "Apple___healthy", "Blueberry___healthy", "Cherry___Powdery_mildew",
     "Cherry___healthy", "Corn___Cercospora_leaf_spot",
@@ -42,6 +44,21 @@ CNN_CLASSES = [
     "Tomato___Mosaic_virus", "Tomato___healthy",
     "Wheat___Brown_rust", "Wheat___Healthy", "Wheat___Yellow_rust",
 ]
+
+
+def _load_cnn_classes() -> list[str]:
+    mapping_path = Path(__file__).resolve().parent / "models" / "label_mapping.json"
+    if not mapping_path.exists():
+        return DEFAULT_CNN_CLASSES
+    try:
+        mapping = json.loads(mapping_path.read_text(encoding="utf-8"))
+        return [label for label, _ in sorted(mapping.items(), key=lambda item: item[1])]
+    except Exception as e:
+        log.warning("label_mapping_load_failed", error=str(e))
+        return DEFAULT_CNN_CLASSES
+
+
+CNN_CLASSES = _load_cnn_classes()
 
 # Expanded treatment database
 TREATMENT_DB = {

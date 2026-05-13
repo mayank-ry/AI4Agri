@@ -2,13 +2,14 @@ import numpy as np
 import pandas as pd
 import joblib
 import os
+from pathlib import Path
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
 
-MODEL_DIR = "backend/ml/models"
-MODEL_PATH = os.path.join(MODEL_DIR, "irrigation_model.pkl")
-ENCODER_CROP_PATH = os.path.join(MODEL_DIR, "le_crop.pkl")
-ENCODER_STAGE_PATH = os.path.join(MODEL_DIR, "le_stage.pkl")
+MODEL_DIR = Path(__file__).resolve().parent / "models"
+MODEL_PATH = MODEL_DIR / "irrigation_model.pkl"
+ENCODER_CROP_PATH = MODEL_DIR / "le_crop.pkl"
+ENCODER_STAGE_PATH = MODEL_DIR / "le_stage.pkl"
 
 CROPS = ['wheat', 'rice', 'cotton', 'maize', 'sugarcane', 'soybean']
 STAGES = ['seedling', 'vegetative', 'flowering', 'maturity']
@@ -69,7 +70,7 @@ def _generate_data(n=8000) -> pd.DataFrame:
 
 def _train_model():
     print("Training Irrigation RandomForest Model...")
-    os.makedirs(MODEL_DIR, exist_ok=True)
+    MODEL_DIR.mkdir(parents=True, exist_ok=True)
     
     df = _generate_data(8000)
     
