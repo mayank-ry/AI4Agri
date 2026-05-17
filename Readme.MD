@@ -1,6 +1,6 @@
 # AI4Agri
 
-Production-style hackathon MVP for AI-assisted precision agriculture.
+Production-style MVP for AI-assisted precision agriculture.
 
 ## Apps
 
